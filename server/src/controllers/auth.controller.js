@@ -66,8 +66,16 @@ const authController = {
   // @desc    Reset Password
   // @route   POST /api/v1/auth/reset-password/:token
   resetPassword: asyncHandler(async (req, res) => {
-    await authService.resetPassword(req.params.token, req.body.password);
+    const token = req.params.token || req.body.token;
+    await authService.resetPassword(token, req.body.password);
     return apiResponse.success(res, 'Password reset successful');
+  }),
+
+  // @desc    Verify Email
+  // @route   POST /api/v1/auth/verify-email
+  verifyEmail: asyncHandler(async (req, res) => {
+    const user = await authService.verifyEmail(req.body.email);
+    return apiResponse.success(res, 'Email verified successfully', { user });
   }),
 
   // @desc    Get user profile
