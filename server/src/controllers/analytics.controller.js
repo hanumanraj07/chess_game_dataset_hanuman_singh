@@ -1,6 +1,7 @@
 const analyticsService = require('../services/analytics.service');
 const apiResponse = require('../utils/apiResponse');
 const asyncHandler = require('../utils/asyncHandler');
+const { paginate } = require('../utils/pagination');
 
 const analyticsController = {
   getVictoryDistribution: asyncHandler(async (req, res) => {
@@ -11,6 +12,13 @@ const analyticsController = {
   getColorAdvantage: asyncHandler(async (req, res) => {
     const data = await analyticsService.getColorAdvantage();
     return apiResponse.success(res, 'Color advantage fetched', { data });
+  }),
+
+  getTopGames: asyncHandler(async (req, res) => {
+    const { page, limit } = req.query;
+    const { skip, meta } = paginate(req.query, page, limit || 10);
+    const data = await analyticsService.getTopGames(skip, meta.limit);
+    return apiResponse.success(res, 'Top games fetched', { data }, meta);
   }),
 
   getTurnCountAverage: asyncHandler(async (req, res) => {
