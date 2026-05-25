@@ -122,9 +122,11 @@ Create a `.env` file inside the `server` folder.
 ```env
 PORT=5000
 
-MONGO_URI=your_mongodb_connection_string
+MONGODB_URI=your_mongodb_connection_string
 
 JWT_SECRET=your_jwt_secret_key
+
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_key
 
 NODE_ENV=development
 ```
@@ -341,8 +343,9 @@ Backend deployment target:
 | Variable | Description |
 |---|---|
 | PORT | Server Port |
-| MONGO_URI | MongoDB Connection String |
+| MONGODB_URI | MongoDB Connection String |
 | JWT_SECRET | JWT Secret Key |
+| JWT_REFRESH_SECRET | JWT Refresh Token Secret |
 | NODE_ENV | Environment Mode |
 
 ---
