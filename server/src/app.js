@@ -12,6 +12,11 @@ const openingRoutes = require('./routes/opening.routes');
 const searchRoutes = require('./routes/search.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const statsRoutes = require('./routes/stats.routes');
+const adminRoutes = require('./routes/admin.routes');
+const middlewareRoutes = require('./routes/middleware.routes');
+const protectedRoutes = require('./routes/protected.routes');
+const systemRoutes = require('./routes/system.routes');
+const systemController = require('./controllers/system.controller');
 
 const app = express();
 
@@ -25,12 +30,19 @@ app.use(rateLimiter);
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/matches', matchRoutes);
+app.use('/api/v1/matches/filter', filterRoutes);
 app.use('/api/v1/filters', filterRoutes);
 app.use('/api/v1/players', playerRoutes);
 app.use('/api/v1/openings', openingRoutes);
 app.use('/api/v1/search', searchRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/stats', statsRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/middleware', middlewareRoutes);
+app.use('/api/v1/protected', protectedRoutes);
+app.use('/api/v1/system', systemRoutes);
+
+app.get('/api/v1/health', systemController.getHealth);
 
 // Basic Route
 app.get('/health', (req, res) => {
