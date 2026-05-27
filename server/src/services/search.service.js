@@ -3,8 +3,8 @@ const Player = require('../models/Player');
 const Opening = require('../models/Opening');
 
 const searchService = {
-  searchMatches: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchMatches: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const query = {
       isDeleted: false,
       $or: [
@@ -18,22 +18,22 @@ const searchService = {
       ],
       ...dbFilters
     };
-    return await Match.find(query).sort({ created_at: -1 }).limit(20);
+    return await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
   },
 
-  searchPlayers: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchPlayers: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const query = {
       ...dbFilters,
       $or: [
         { username: { $regex: q, $options: 'i' } }
       ]
     };
-    return await Player.find(query).sort({ totalGames: -1 }).limit(20);
+    return await Player.find(query).sort({ totalGames: -1 }).skip(skip).limit(limit);
   },
 
-  searchOpenings: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchOpenings: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const query = {
       ...dbFilters,
       $or: [
@@ -42,23 +42,23 @@ const searchService = {
         { family: { $regex: q, $options: 'i' } }
       ]
     };
-    return await Opening.find(query).sort({ totalGames: -1 }).limit(20);
+    return await Opening.find(query).sort({ totalGames: -1 }).skip(skip).limit(limit);
   },
 
-  searchEco: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchEco: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const query = { eco: { $regex: q, $options: 'i' }, ...dbFilters };
-    return await Opening.find(query).sort({ totalGames: -1 }).limit(20);
+    return await Opening.find(query).sort({ totalGames: -1 }).skip(skip).limit(limit);
   },
 
-  searchMoves: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchMoves: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const query = {
       isDeleted: false,
       moves: { $regex: q.replace(/,/g, ' '), $options: 'i' },
       ...dbFilters
     };
-    return await Match.find(query).sort({ created_at: -1 }).limit(20);
+    return await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
   },
 
   searchFuzzy: async (q) => {
@@ -80,28 +80,30 @@ const searchService = {
     return { players: players.map(p => p.username), openings: openings.map(o => ({ name: o.name, eco: o.eco })) };
   },
 
-  getRecentSearches: async (filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  getRecentSearches: async (filters = {}, skip = 0, limit = 10) => {
+    const { page, limit: _limit, sort, ...dbFilters } = filters;
     return await Match.find({ isDeleted: false, ...dbFilters })
       .sort({ created_at: -1 })
-      .limit(10)
+      .skip(skip)
+      .limit(limit)
       .select('id white_id black_id opening_name');
   },
 
-  getPopularSearches: async (filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  getPopularSearches: async (filters = {}, skip = 0, limit = 10) => {
+    const { page, limit: _limit, sort, ...dbFilters } = filters;
     const pipeline = [
       { $match: { isDeleted: false, opening_name: { $ne: '', $exists: true }, ...dbFilters } },
       { $group: { _id: '$opening_name', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-      { $limit: 10 },
+      { $skip: skip },
+      { $limit: limit },
       { $project: { _id: 0, name: '$_id', count: 1 } }
     ];
     return await Match.aggregate(pipeline);
   },
 
-  searchAdvanced: async (filters = {}) => {
-    const { page, q, from, to, rating, opening, status, ...dbFilters } = filters;
+  searchAdvanced: async (filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q, from, to, rating, opening, status, ...dbFilters } = filters;
     const query = { isDeleted: false, ...dbFilters };
 
     if (q) {
@@ -116,14 +118,20 @@ const searchService = {
     if (rating) query.$expr = { $or: [{ $gte: [{ $toInt: '$white_rating' }, parseInt(rating)] }, { $gte: [{ $toInt: '$black_rating' }, parseInt(rating)] }] };
     if (status) query.victory_status = status;
     if (opening) query.opening_name = { $regex: opening, $options: 'i' };
+    if (from || to) {
+      const conditions = [];
+      if (from) conditions.push({ $gte: [{ $toLong: { $toDouble: '$created_at' } }, new Date(from).getTime()] });
+      if (to) conditions.push({ $lte: [{ $toLong: { $toDouble: '$created_at' } }, new Date(to).getTime()] });
+      query.$and = [...(query.$and || []), { $expr: conditions.length === 1 ? conditions[0] : { $and: conditions } }];
+    }
 
-    const matches = await Match.find(query).sort({ created_at: -1 }).limit(20);
+    const matches = await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
 
     return { matches, filters: { q, from, to, rating, opening, status } };
   },
 
-  searchByPlayerRating: async (rating, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchByPlayerRating: async (rating, filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, rating: _rating, ...dbFilters } = filters;
     const ratingNum = parseInt(rating) || 0;
     const query = {
       isDeleted: false,
@@ -135,11 +143,11 @@ const searchService = {
       },
       ...dbFilters
     };
-    return await Match.find(query).sort({ created_at: -1 }).limit(20);
+    return await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
   },
 
-  searchByDateRange: async (from, to, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchByDateRange: async (from, to, filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, from: _from, to: _to, ...dbFilters } = filters;
     const query = { isDeleted: false, ...dbFilters };
 
     if (from || to) {
@@ -150,35 +158,35 @@ const searchService = {
       query.$expr = conditions.length === 1 ? conditions[0] : { $and: conditions };
     }
 
-    return await Match.find(query).sort({ created_at: -1 }).limit(20);
+    return await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
   },
 
-  searchByOpeningFamily: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchByOpeningFamily: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const regex = new RegExp(q, 'i');
-    return await Opening.find({ family: regex, ...dbFilters }).sort({ totalGames: -1 }).limit(20);
+    return await Opening.find({ family: regex, ...dbFilters }).sort({ totalGames: -1 }).skip(skip).limit(limit);
   },
 
-  searchCheckmatePatterns: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchCheckmatePatterns: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const query = {
       isDeleted: false,
       victory_status: 'mate',
       ...dbFilters
     };
     if (q) query.moves = { $regex: q, $options: 'i' };
-    return await Match.find(query).sort({ created_at: -1 }).limit(20);
+    return await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
   },
 
-  searchEndgames: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  searchEndgames: async (q = '', filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, sort, q: _q, ...dbFilters } = filters;
     const query = {
       isDeleted: false,
       $expr: { $gte: [{ $toInt: '$turns' }, 60] },
       ...dbFilters
     };
     if (q) query.moves = { $regex: q, $options: 'i' };
-    return await Match.find(query).sort({ created_at: -1 }).limit(20);
+    return await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
   }
 };
 
