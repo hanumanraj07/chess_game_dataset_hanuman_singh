@@ -13,10 +13,46 @@ const analyticsService = {
 
   getColorAdvantage: async () => {
     const pipeline = [
-      { $match: { isDeleted: false, winner: { $ne: 'draw', $ne: '', $exists: true } } },
+      { $match: { isDeleted: false, winner: { $nin: ['draw', ''], $exists: true } } },
       { $group: { _id: '$winner', count: { $sum: 1 } } },
       { $project: { _id: 0, color: '$_id', count: 1 } }
     ];
+    return await Match.aggregate(pipeline);
+  },
+
+  getTopGames: async (skip = 0, limit = 10) => {
+    const pipeline = [
+      { $match: { isDeleted: false, white_rating: { $ne: '' }, black_rating: { $ne: '' } } },
+      {
+        $addFields: {
+          whiteRatingInt: { $toInt: '$white_rating' },
+          blackRatingInt: { $toInt: '$black_rating' }
+        }
+      },
+      {
+        $addFields: {
+          combinedRating: { $add: ['$whiteRatingInt', '$blackRatingInt'] }
+        }
+      },
+      { $sort: { combinedRating: -1, created_at: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 0,
+          id: 1,
+          white_id: 1,
+          black_id: 1,
+          white_rating: 1,
+          black_rating: 1,
+          combinedRating: 1,
+          winner: 1,
+          opening_name: 1,
+          turns: 1
+        }
+      }
+    ];
+
     return await Match.aggregate(pipeline);
   },
 

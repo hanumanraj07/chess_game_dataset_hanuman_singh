@@ -106,6 +106,17 @@ const authService = {
     await user.save();
   },
 
+  verifyEmail: async (email) => {
+    const user = await User.findOneAndUpdate(
+      { email },
+      { emailVerified: true },
+      { new: true, runValidators: true }
+    ).select('-password -refreshToken');
+
+    if (!user) throw new Error('User not found');
+    return user;
+  },
+
   getProfile: async (userId) => {
     return await User.findById(userId).select('-password -refreshToken');
   },

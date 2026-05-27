@@ -25,7 +25,7 @@ const openingService = {
   },
 
   searchOpenings: async (q, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+    const { page, limit, q: _q, ...dbFilters } = filters;
     const query = {
       ...dbFilters,
       $or: [

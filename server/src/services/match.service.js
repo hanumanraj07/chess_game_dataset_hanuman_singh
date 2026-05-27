@@ -78,23 +78,25 @@ const matchService = {
   /**
    * Get latest matches
    */
-  getLatestMatches: async (filters = {}) => {
+  getLatestMatches: async (filters = {}, skip = 0, limit = 10) => {
     const query = { ...filters, isDeleted: false };
     return await Match.find(query)
-      .sort({ createdAt: -1 })
-      .limit(10);
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(limit);
   },
 
   /**
    * Get trending matches (simplified - most recent)
    */
-  getTrendingMatches: async (filters = {}) => {
+  getTrendingMatches: async (filters = {}, skip = 0, limit = 10) => {
     // In a real implementation, this might consider views, likes, etc.
     // For now, return most recent matches
     const query = { ...filters, isDeleted: false };
     return await Match.find(query)
       .sort({ createdAt: -1 })
-      .limit(10);
+      .skip(skip)
+      .limit(limit);
   },
 
   /**
@@ -345,10 +347,10 @@ const matchService = {
    */
   filterByTimeClass: async (timeClass, filters = {}) => {
     const timeClassRanges = {
-      bullet:    { $lt: [{ $toInt: { $arrayElemAt: [{ $split: ['$increment_code', '+'] }, 0] } }, 180] },
-      blitz:     { $gte: [{ $toInt: { $arrayElemAt: [{ $split: ['$increment_code', '+'] }, 0] } }, 180], $lt: [{ $toInt: { $arrayElemAt: [{ $split: ['$increment_code', '+'] }, 0] } }, 600] },
-      rapid:     { $gte: [{ $toInt: { $arrayElemAt: [{ $split: ['$increment_code', '+'] }, 0] } }, 600], $lt: [{ $toInt: { $arrayElemAt: [{ $split: ['$increment_code', '+'] }, 0] } }, 1800] },
-      classical: { $gte: [{ $toInt: { $arrayElemAt: [{ $split: ['$increment_code', '+'] }, 0] } }, 1800] }
+      bullet: { $lt: 180 },
+      blitz: { $gte: 180, $lt: 600 },
+      rapid: { $gte: 600, $lt: 1800 },
+      classical: { $gte: 1800 }
     };
 
     const matchCond = timeClassRanges[timeClass];
