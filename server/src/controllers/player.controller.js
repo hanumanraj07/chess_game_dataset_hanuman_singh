@@ -17,8 +17,10 @@ const playerController = {
   }),
 
   getHistory: asyncHandler(async (req, res) => {
-    const matches = await playerService.getPlayerHistory(req.params.username, req.query);
-    return apiResponse.success(res, 'Player history fetched', { matches });
+    const { page, limit } = req.query;
+    const { skip, meta } = paginate(req.query, page, limit);
+    const matches = await playerService.getPlayerHistory(req.params.username, req.query, skip, meta.limit);
+    return apiResponse.success(res, 'Player history fetched', { matches }, meta);
   }),
 
   getStats: asyncHandler(async (req, res) => {

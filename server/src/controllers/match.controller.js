@@ -2,6 +2,19 @@ const matchService = require('../services/match.service');
 const apiResponse = require('../utils/apiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const { paginate, buildSort } = require('../utils/pagination');
+const { stripQueryKeys } = require('../utils/query');
+
+const listFilters = (query) => stripQueryKeys(query, [
+  'page',
+  'limit',
+  'sort',
+  'cursor',
+  'q',
+  'from',
+  'to',
+  'min',
+  'max'
+]);
 
 /**
  * Match Controller Handlers
@@ -10,96 +23,96 @@ const matchController = {
   // Filter: white-wins / black-wins / draws
   // @route   GET /api/v1/filters/white-wins
   filterWhiteWins: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByWhiteWins(req.query);
+    const matches = await matchService.filterByWhiteWins(listFilters(req.query));
     return apiResponse.success(res, 'White win matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/black-wins
   filterBlackWins: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByBlackWins(req.query);
+    const matches = await matchService.filterByBlackWins(listFilters(req.query));
     return apiResponse.success(res, 'Black win matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/draws
   filterDraws: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByDraws(req.query);
+    const matches = await matchService.filterByDraws(listFilters(req.query));
     return apiResponse.success(res, 'Draw matches fetched', { matches });
   }),
 
   // Filter: rated / unrated
   // @route   GET /api/v1/filters/rated
   filterRated: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByRated(req.query);
+    const matches = await matchService.filterByRated(listFilters(req.query));
     return apiResponse.success(res, 'Rated matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/unrated
   filterUnrated: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByUnrated(req.query);
+    const matches = await matchService.filterByUnrated(listFilters(req.query));
     return apiResponse.success(res, 'Unrated matches fetched', { matches });
   }),
 
   // Filter: checkmates / resignations / timeouts
   // @route   GET /api/v1/filters/checkmates
   filterCheckmates: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByCheckmates(req.query);
+    const matches = await matchService.filterByCheckmates(listFilters(req.query));
     return apiResponse.success(res, 'Checkmate matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/resignations
   filterResignations: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByResignations(req.query);
+    const matches = await matchService.filterByResignations(listFilters(req.query));
     return apiResponse.success(res, 'Resignation matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/timeouts
   filterTimeouts: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByTimeouts(req.query);
+    const matches = await matchService.filterByTimeouts(listFilters(req.query));
     return apiResponse.success(res, 'Timeout matches fetched', { matches });
   }),
 
   // Filter: time class
   // @route   GET /api/v1/filters/bullet
   filterBullet: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByTimeClass('bullet', req.query);
+    const matches = await matchService.filterByTimeClass('bullet', listFilters(req.query));
     return apiResponse.success(res, 'Bullet matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/blitz
   filterBlitz: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByTimeClass('blitz', req.query);
+    const matches = await matchService.filterByTimeClass('blitz', listFilters(req.query));
     return apiResponse.success(res, 'Blitz matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/rapid
   filterRapid: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByTimeClass('rapid', req.query);
+    const matches = await matchService.filterByTimeClass('rapid', listFilters(req.query));
     return apiResponse.success(res, 'Rapid matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/classical
   filterClassical: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByTimeClass('classical', req.query);
+    const matches = await matchService.filterByTimeClass('classical', listFilters(req.query));
     return apiResponse.success(res, 'Classical matches fetched', { matches });
   }),
 
   // Filter: high / low rated
   // @route   GET /api/v1/filters/high-rated
   filterHighRated: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByHighRated(req.query);
+    const matches = await matchService.filterByHighRated(listFilters(req.query));
     return apiResponse.success(res, 'High rated matches fetched', { matches });
   }),
 
   // @route   GET /api/v1/filters/low-rated
   filterLowRated: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByLowRated(req.query);
+    const matches = await matchService.filterByLowRated(listFilters(req.query));
     return apiResponse.success(res, 'Low rated matches fetched', { matches });
   }),
 
   // Filter: long games
   // @route   GET /api/v1/filters/long-games
   filterLongGames: asyncHandler(async (req, res) => {
-    const matches = await matchService.filterByLongGames(req.query);
+    const matches = await matchService.filterByLongGames(listFilters(req.query));
     return apiResponse.success(res, 'Long games fetched', { matches });
   }),
 
@@ -116,21 +129,21 @@ const matchController = {
   // @desc    Get shortest matches (by turns ascending)
   // @route   GET /api/v1/matches/sort/shortest
   getShortestMatches: asyncHandler(async (req, res) => {
-    const matches = await matchService.getShortestMatches(req.query);
+    const matches = await matchService.getShortestMatches(listFilters(req.query));
     return apiResponse.success(res, 'Shortest matches fetched', { matches });
   }),
 
   // @desc    Get longest matches (by turns descending)
   // @route   GET /api/v1/matches/sort/longest
   getLongestMatches: asyncHandler(async (req, res) => {
-    const matches = await matchService.getLongestMatches(req.query);
+    const matches = await matchService.getLongestMatches(listFilters(req.query));
     return apiResponse.success(res, 'Longest matches fetched', { matches });
   }),
 
   // @desc    Get highest rated matches
   // @route   GET /api/v1/matches/sort/highest-rated
   getHighestRated: asyncHandler(async (req, res) => {
-    const matches = await matchService.getHighestRated(req.query);
+    const matches = await matchService.getHighestRated(listFilters(req.query));
     return apiResponse.success(res, 'Highest rated matches fetched', { matches });
   }),
 
@@ -189,15 +202,21 @@ const matchController = {
   // @desc    Get latest matches
   // @route   GET /api/v1/matches/latest
   getLatestMatches: asyncHandler(async (req, res) => {
-    const matches = await matchService.getLatestMatches(req.query);
-    return apiResponse.success(res, 'Latest matches fetched', { matches });
+    const { page, limit } = req.query;
+    const { skip, meta } = paginate(req.query, page, limit || 10);
+    const filters = stripQueryKeys(req.query, ['page', 'limit', 'sort']);
+    const matches = await matchService.getLatestMatches(filters, skip, meta.limit);
+    return apiResponse.success(res, 'Latest matches fetched', { matches }, meta);
   }),
 
   // @desc    Get trending matches
   // @route   GET /api/v1/matches/trending
   getTrendingMatches: asyncHandler(async (req, res) => {
-    const matches = await matchService.getTrendingMatches(req.query);
-    return apiResponse.success(res, 'Trending matches fetched', { matches });
+    const { page, limit } = req.query;
+    const { skip, meta } = paginate(req.query, page, limit || 10);
+    const filters = stripQueryKeys(req.query, ['page', 'limit', 'sort']);
+    const matches = await matchService.getTrendingMatches(filters, skip, meta.limit);
+    return apiResponse.success(res, 'Trending matches fetched', { matches }, meta);
   }),
 
   // @desc    Get random match
