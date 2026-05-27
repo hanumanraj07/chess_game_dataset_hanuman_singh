@@ -14,14 +14,14 @@ const playerService = {
     return player;
   },
 
-  getPlayerHistory: async (username, filters = {}) => {
-    const { page, ...dbFilters } = filters;
+  getPlayerHistory: async (username, filters = {}, skip = 0, limit = 20) => {
+    const { page, limit: _limit, ...dbFilters } = filters;
     const query = {
       isDeleted: false,
       $or: [{ white_id: username }, { black_id: username }],
       ...dbFilters
     };
-    return await Match.find(query).sort({ created_at: -1 }).limit(20);
+    return await Match.find(query).sort({ created_at: -1 }).skip(skip).limit(limit);
   },
 
   getPlayerStats: async (username) => {
