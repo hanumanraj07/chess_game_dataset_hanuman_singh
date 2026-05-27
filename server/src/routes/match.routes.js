@@ -22,6 +22,7 @@ router.get('/random', matchController.getRandomMatch);
 router.post('/bulk-upload', protect, matchController.bulkUpload);
 router.patch('/bulk-update', protect, matchController.bulkUpdate);
 router.post('/bulk-delete', protect, matchController.bulkDelete);
+router.delete('/bulk-delete', protect, matchController.bulkDelete);
 router.patch('/bulk/archive', protect, matchController.bulkArchive);
 router.patch('/bulk/restore', protect, matchController.bulkRestore);
 

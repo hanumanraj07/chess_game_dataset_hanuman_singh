@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.get('/victory-distribution', analyticsController.getVictoryDistribution);
 router.get('/color-advantage', analyticsController.getColorAdvantage);
+router.get('/top-games', analyticsController.getTopGames);
 router.get('/turn-count-average', analyticsController.getTurnCountAverage);
 router.get('/rated-vs-casual', analyticsController.getRatedVsCasual);
 router.get('/time-control-usage', analyticsController.getTimeControlUsage);

@@ -39,4 +39,14 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
-module.exports = { protect };
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return apiResponse.error(res, 'Forbidden: insufficient permissions', null, 403);
+    }
+
+    next();
+  };
+};
+
+module.exports = { protect, authorize };
