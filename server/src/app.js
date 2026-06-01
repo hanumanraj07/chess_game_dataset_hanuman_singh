@@ -16,9 +16,13 @@ const adminRoutes = require('./routes/admin.routes');
 const middlewareRoutes = require('./routes/middleware.routes');
 const protectedRoutes = require('./routes/protected.routes');
 const systemRoutes = require('./routes/system.routes');
+const metaRoutes = require('./routes/meta.routes');
 const systemController = require('./controllers/system.controller');
 
 const app = express();
+
+// Explicit HEAD/OPTIONS metadata routes are mounted before CORS preflight handling.
+app.use('/api/v1', metaRoutes);
 
 // Middleware
 app.use(cors());
