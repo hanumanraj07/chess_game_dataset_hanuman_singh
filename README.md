@@ -15,6 +15,14 @@ A scalable backend API for chess match analytics built using Node.js, Express.js
 
 ---
 
+# Live Links
+
+- **Backend Health Check:** https://chess-dataset.onrender.com/health
+- **Postman Documentation:** https://documenter.getpostman.com/view/50839390/2sBXwnuCeK
+- **Dataset:** https://drive.google.com/file/d/1zbYfcDC6hN6nPyIagaEig8kIombqKVAy/view
+
+---
+
 # 🚀 Features
 
 ## Core Features
@@ -57,34 +65,75 @@ A scalable backend API for chess match analytics built using Node.js, Express.js
 
 # 📂 Project Structure
 
-```bash
-server/
-│
-├── src/
-│   ├── config/
-│   │   └── db.js
-│   │
-│   ├── controllers/
-│   │
-│   ├── middlewares/
-│   │
-│   ├── models/
-│   │
-│   ├── routes/
-│   │
-│   ├── services/
-│   │
-│   ├── utils/
-│   │
-│   ├── seed/
-│   │
-│   ├── app.js
-│   └── server.js
-│
-├── .env
-├── .gitignore
-├── package.json
-└── README.md
+```text
+chess_game_dataset_hanuman_singh/
+|-- README.md
+`-- server/
+    |-- .env
+    |-- .env.example
+    |-- .gitignore
+    |-- package-lock.json
+    |-- package.json
+    `-- src/
+        |-- app.js
+        |-- server.js
+        |-- config/
+        |   |-- db.js
+        |   `-- env.js
+        |-- controllers/
+        |   |-- admin.controller.js
+        |   |-- analytics.controller.js
+        |   |-- auth.controller.js
+        |   |-- match.controller.js
+        |   |-- middleware.controller.js
+        |   |-- opening.controller.js
+        |   |-- player.controller.js
+        |   |-- search.controller.js
+        |   |-- stats.controller.js
+        |   `-- system.controller.js
+        |-- middlewares/
+        |   |-- auth.middleware.js
+        |   |-- error.middleware.js
+        |   |-- logger.middleware.js
+        |   |-- rateLimiter.middleware.js
+        |   `-- validate.middleware.js
+        |-- models/
+        |   |-- Match.js
+        |   |-- Opening.js
+        |   |-- Player.js
+        |   `-- User.js
+        |-- routes/
+        |   |-- admin.routes.js
+        |   |-- analytics.routes.js
+        |   |-- auth.routes.js
+        |   |-- filter.routes.js
+        |   |-- match.routes.js
+        |   |-- middleware.routes.js
+        |   |-- opening.routes.js
+        |   |-- player.routes.js
+        |   |-- protected.routes.js
+        |   |-- search.routes.js
+        |   |-- stats.routes.js
+        |   `-- system.routes.js
+        |-- scripts/
+        |   |-- find-data.js
+        |   `-- import-data.js
+        |-- services/
+        |   |-- admin.service.js
+        |   |-- analytics.service.js
+        |   |-- auth.service.js
+        |   |-- match.service.js
+        |   |-- opening.service.js
+        |   |-- player.service.js
+        |   |-- search.service.js
+        |   |-- stats.service.js
+        |   `-- system.service.js
+        `-- utils/
+            |-- apiResponse.js
+            |-- asyncHandler.js
+            |-- cast.js
+            |-- pagination.js
+            `-- query.js
 ```
 
 ---
