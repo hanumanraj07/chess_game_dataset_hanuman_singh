@@ -8,6 +8,7 @@ const openingController = {
     const { page, limit, ...filters } = req.query;
     const { skip, meta } = paginate(req.query, page, limit);
     const openings = await openingService.getAllOpenings(filters, skip, meta.limit);
+    meta.total = await openingService.countOpenings(filters);
     return apiResponse.success(res, 'Openings fetched', { openings }, meta);
   }),
 
