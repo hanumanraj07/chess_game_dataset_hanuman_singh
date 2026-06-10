@@ -2,8 +2,21 @@ const Opening = require('../models/Opening');
 
 const openingService = {
   getAllOpenings: async (filters = {}, skip = 0, limit = 10) => {
-    const { page, ...dbFilters } = filters;
-    return await Opening.find({ ...dbFilters }).sort({ totalGames: -1 }).skip(skip).limit(limit);
+    const { page, q, ...dbFilters } = filters;
+    const query = { ...dbFilters };
+    if (q) {
+      query.name = { $regex: q, $options: 'i' };
+    }
+    return await Opening.find(query).sort({ totalGames: -1 }).skip(skip).limit(limit);
+  },
+
+  countOpenings: async (filters = {}) => {
+    const { page, q, ...dbFilters } = filters;
+    const query = { ...dbFilters };
+    if (q) {
+      query.name = { $regex: q, $options: 'i' };
+    }
+    return await Opening.countDocuments(query);
   },
 
   getPopularOpenings: async (filters = {}) => {

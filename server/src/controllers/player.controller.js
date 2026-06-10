@@ -8,6 +8,7 @@ const playerController = {
     const { page, limit, sort, ...filters } = req.query;
     const { skip, meta } = paginate(req.query, page, limit);
     const players = await playerService.getAllPlayers(filters, skip, meta.limit);
+    meta.total = await playerService.countPlayers(filters);
     return apiResponse.success(res, 'Players fetched successfully', { players }, meta);
   }),
 
