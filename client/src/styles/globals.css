@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap');
+
+:root {
+  --color-bg:           #F5F2EB;
+  --color-bg-alt:       #EDEADE;
+  --color-surface:      #E8E4D9;
+  --color-green:        #1A6B3A;
+  --color-green-mid:    #2D8C50;
+  --color-green-light:  #4CAF70;
+  --color-green-pale:   #C8E6C9;
+  --color-black:        #0D0D0D;
+  --color-ink:          #1A1A1A;
+  --color-muted:        #5A5A4A;
+  --color-border:       #0D0D0D;
+  --color-danger:       #C0392B;
+  --color-warning:      #D4A017;
+  --color-white:        #FFFFFF;
+
+  --border-thin:    2px solid var(--color-border);
+  --border-thick:   4px solid var(--color-border);
+  --border-brutal:  6px solid var(--color-border);
+
+  --shadow-sm:   4px 4px 0px var(--color-black);
+  --shadow-md:   6px 6px 0px var(--color-black);
+  --shadow-lg:   8px 8px 0px var(--color-black);
+  --shadow-green: 6px 6px 0px var(--color-green);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+
+  --font-display:  'Space Mono', monospace;
+  --font-body:     'IBM Plex Mono', monospace;
+  --font-ui:       'Courier Prime', monospace;
+  --font-size-xs:  11px;
+  --font-size-sm:  13px;
+  --font-size-md:  15px;
+  --font-size-lg:  18px;
+  --font-size-xl:  24px;
+  --font-size-2xl: 32px;
+  --font-size-3xl: 48px;
+
+  --transition-fast: 80ms ease;
+  --transition-mid:  150ms ease;
+
+  --sidebar-width: 260px;
+  --navbar-height: 60px;
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] {
+  --color-bg:         #0D0D0D;
+  --color-bg-alt:     #181818;
+  --color-surface:    #222222;
+  --color-ink:        #F5F2EB;
+  --color-muted:      #9A9A8A;
+  --color-border:     #F5F2EB;
+  --color-black:      #F5F2EB;   /* inverted — used as "dark" contrast color in dark mode */
+  --color-white:      #0D0D0D;   /* inverted for dark mode surfaces */
+  --border-thin:      2px solid var(--color-border);
+  --border-thick:     4px solid var(--color-border);
+  --border-brutal:    6px solid var(--color-border);
+  --shadow-sm:        4px 4px 0px rgba(245, 242, 235, 0.4);
+  --shadow-md:        6px 6px 0px rgba(245, 242, 235, 0.4);
+  --shadow-lg:        8px 8px 0px rgba(245, 242, 235, 0.4);
+  --shadow-green:     6px 6px 0px var(--color-green);
+  /* Hover tokens — flip so text always contrasts against hover background */
+  --color-hover-bg:   #F5F2EB;
+  --color-hover-text: #0D0D0D;
+  /* Table zebra stripe in dark mode */
+  --color-table-stripe: #1e1e1e;
+  --color-table-hover:  #1A3A28;
+}
+
+:root {
+  --color-hover-bg:   #0D0D0D;
+  --color-hover-text: #F5F2EB;
+  --color-table-stripe: var(--color-surface);
+  --color-table-hover:  var(--color-green-pale);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  line-height: 1.6;
+  min-height: 100vh;
+  transition: background-color var(--transition-mid), color var(--transition-mid);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--color-green);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink);
+}
+
+/* Scrollbar brutalist styling */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bg-alt); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink);
+  border: 2px solid var(--color-bg-alt);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-green); }
+
+/* React Hot Toast brutalist override */
+.brutal-toast {
+  font-family: var(--font-display) !important;
+  font-size: var(--font-size-xs) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  border-radius: 0 !important;
+  border: var(--border-thick) !important;
+  box-shadow: var(--shadow-md) !important;
+  background: var(--color-bg) !important;
+  color: var(--color-ink) !important;
+}
