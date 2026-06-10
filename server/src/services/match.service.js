@@ -1,5 +1,11 @@
 const Match = require('../models/Match');
 
+const getMatchQuery = (matchId) => {
+  return matchId.match(/^[0-9a-fA-F]{24}$/)
+    ? { _id: matchId, isDeleted: false }
+    : { id: matchId, isDeleted: false };
+};
+
 /**
  * Match Service Logic
  */
@@ -8,16 +14,48 @@ const matchService = {
    * Get all matches (non-deleted) with sort & pagination
    */
   getAllMatches: async (filters = {}, sort = { created_at: -1 }, skip = 0, limit = 10) => {
-    const { page, ...dbFilters } = filters;
+    const { page, q, rated, type, ...dbFilters } = filters;
     const query = { ...dbFilters, isDeleted: false };
+    
+    if (q) {
+      query.$or = [
+        { white_id: { $regex: q, $options: 'i' } },
+        { black_id: { $regex: q, $options: 'i' } },
+        { opening_name: { $regex: q, $options: 'i' } }
+      ];
+    }
+    
+    if (rated) {
+      query.rated = rated.toUpperCase();
+    }
+    
     return await Match.find(query).sort(sort).skip(skip).limit(limit);
+  },
+
+  countMatches: async (filters = {}) => {
+    const { page, q, rated, type, ...dbFilters } = filters;
+    const query = { ...dbFilters, isDeleted: false };
+    
+    if (q) {
+      query.$or = [
+        { white_id: { $regex: q, $options: 'i' } },
+        { black_id: { $regex: q, $options: 'i' } },
+        { opening_name: { $regex: q, $options: 'i' } }
+      ];
+    }
+    
+    if (rated) {
+      query.rated = rated.toUpperCase();
+    }
+    
+    return await Match.countDocuments(query);
   },
 
   /**
    * Get match by Lichess ID
    */
   getMatchById: async (matchId) => {
-    const match = await Match.findOne({ id: matchId, isDeleted: false });
+    const match = await Match.findOne(getMatchQuery(matchId));
     if (!match) throw new Error('Match not found');
     return match;
   },
@@ -26,7 +64,7 @@ const matchService = {
    * Get match moves
    */
   getMatchMoves: async (matchId) => {
-    const match = await Match.findOne({ id: matchId, isDeleted: false });
+    const match = await Match.findOne(getMatchQuery(matchId));
     if (!match) throw new Error('Match not found');
     return match.moves; // Return the raw moves string
   },
@@ -35,7 +73,7 @@ const matchService = {
    * Get match PGN (simplified - in reality would convert to proper PGN)
    */
   getMatchPGN: async (matchId) => {
-    const match = await Match.findOne({ id: matchId, isDeleted: false });
+    const match = await Match.findOne(getMatchQuery(matchId));
     if (!match) throw new Error('Match not found');
     // For now, return moves as PGN (real implementation would add headers, etc.)
     return match.moves;
@@ -45,7 +83,7 @@ const matchService = {
    * Get match FEN (simplified - returns starting position)
    */
   getMatchFEN: async (matchId) => {
-    const match = await Match.findOne({ id: matchId, isDeleted: false });
+    const match = await Match.findOne(getMatchQuery(matchId));
     if (!match) throw new Error('Match not found');
     // Return starting FEN position (real implementation would calculate from moves)
     return "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -55,7 +93,7 @@ const matchService = {
    * Get match analysis (basic stats)
    */
   getMatchAnalysis: async (matchId) => {
-    const match = await Match.findOne({ id: matchId, isDeleted: false });
+    const match = await Match.findOne(getMatchQuery(matchId));
     if (!match) throw new Error('Match not found');
     return {
       id: match.id,

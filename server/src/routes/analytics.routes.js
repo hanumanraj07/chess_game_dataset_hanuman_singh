@@ -19,5 +19,7 @@ router.get('/timeouts', analyticsController.getTimeouts);
 router.get('/opening-success', analyticsController.getOpeningSuccess);
 router.get('/player-growth', analyticsController.getPlayerGrowth);
 router.get('/hourly-activity', analyticsController.getHourlyActivity);
+router.get('/rating-distribution', analyticsController.getRatingDistribution);
+router.get('/rating-trend', analyticsController.getRatingTrend);
 
 module.exports = router;

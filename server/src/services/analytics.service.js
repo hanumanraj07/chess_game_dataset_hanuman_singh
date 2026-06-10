@@ -180,6 +180,52 @@ const analyticsService = {
       { $project: { _id: 0, hour: '$_id', count: 1 } }
     ];
     return await Match.aggregate(pipeline);
+  },
+
+  getRatingDistribution: async () => {
+    const Player = require('../models/Player');
+    const pipeline = [
+      {
+        $bucket: {
+          groupBy: "$currentRating",
+          boundaries: [0, 1000, 1200, 1400, 1600, 1800, 2000, 2200],
+          default: 2200,
+          output: { count: { $sum: 1 } }
+        }
+      },
+      {
+        $project: {
+          range: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$_id", 0] }, then: "< 1000" },
+                { case: { $eq: ["$_id", 1000] }, then: "1000-1199" },
+                { case: { $eq: ["$_id", 1200] }, then: "1200-1399" },
+                { case: { $eq: ["$_id", 1400] }, then: "1400-1599" },
+                { case: { $eq: ["$_id", 1600] }, then: "1600-1799" },
+                { case: { $eq: ["$_id", 1800] }, then: "1800-1999" },
+                { case: { $eq: ["$_id", 2000] }, then: "2000-2199" }
+              ],
+              default: "2200+"
+            }
+          },
+          count: 1,
+          _id: 0
+        }
+      }
+    ];
+    return await Player.aggregate(pipeline);
+  },
+
+  getRatingTrend: async () => {
+    const pipeline = [
+      { $match: { isDeleted: false, created_at: { $ne: '', $exists: true }, white_rating: { $ne: '' }, black_rating: { $ne: '' } } },
+      { $addFields: { createdDate: { $toDate: { $toLong: { $toDouble: '$created_at' } } }, avgMatchRating: { $divide: [{ $add: [{ $toInt: '$white_rating' }, { $toInt: '$black_rating' }] }, 2] } } },
+      { $group: { _id: { year: { $year: '$createdDate' }, month: { $month: '$createdDate' } }, avgRating: { $avg: '$avgMatchRating' } } },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+      { $project: { _id: 0, date: { $concat: [{ $toString: '$_id.year' }, '-', { $cond: [{ $lt: ['$_id.month', 10] }, { $concat: ['0', { $toString: '$_id.month' }] }, { $toString: '$_id.month' }] }] }, avgRating: { $round: ['$avgRating', 0] } } }
+    ];
+    return await Match.aggregate(pipeline);
   }
 };
 
