@@ -3,15 +3,37 @@ const Match = require('../models/Match');
 
 const playerService = {
   getAllPlayers: async (filters = {}, skip = 0, limit = 10) => {
-    const { page, ...dbFilters } = filters;
+    const { page, q, ...dbFilters } = filters;
     const query = { ...dbFilters };
+    if (q) {
+      query.username = { $regex: q, $options: 'i' };
+    }
     return await Player.find(query).sort({ totalGames: -1 }).skip(skip).limit(limit);
   },
 
-  getPlayerByUsername: async (username) => {
-    const player = await Player.findOne({ username });
+  countPlayers: async (filters = {}) => {
+    const { page, q, ...dbFilters } = filters;
+    const query = { ...dbFilters };
+    if (q) {
+      query.username = { $regex: q, $options: 'i' };
+    }
+    return await Player.countDocuments(query);
+  },
+
+  getPlayerByUsername: async (identifier) => {
+    const isObjectId = identifier.match(/^[0-9a-fA-F]{24}$/);
+    const query = isObjectId ? { _id: identifier } : { username: identifier };
+    
+    const player = await Player.findOne(query);
     if (!player) throw new Error('Player not found');
-    return player;
+    
+    // Fetch recent match history to attach for the frontend PlayerDetail view
+    const matchHistory = await Match.find({ 
+      isDeleted: false, 
+      $or: [{ white_id: player.username }, { black_id: player.username }] 
+    }).sort({ created_at: -1 }).limit(20);
+    
+    return { ...player.toObject(), matchHistory };
   },
 
   getPlayerHistory: async (username, filters = {}, skip = 0, limit = 20) => {
