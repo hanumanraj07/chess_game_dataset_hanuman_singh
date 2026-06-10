@@ -84,6 +84,16 @@ const analyticsController = {
   getHourlyActivity: asyncHandler(async (req, res) => {
     const data = await analyticsService.getHourlyActivity();
     return apiResponse.success(res, 'Hourly activity fetched', { data });
+  }),
+
+  getRatingDistribution: asyncHandler(async (req, res) => {
+    const data = await analyticsService.getRatingDistribution();
+    return apiResponse.success(res, 'Rating distribution fetched', { data });
+  }),
+
+  getRatingTrend: asyncHandler(async (req, res) => {
+    const data = await analyticsService.getRatingTrend();
+    return apiResponse.success(res, 'Rating trend fetched', { data });
   })
 };
 
