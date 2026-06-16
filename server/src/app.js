@@ -9,6 +9,7 @@ const matchRoutes = require('./routes/match.routes');
 const filterRoutes = require('./routes/filter.routes');
 const playerRoutes = require('./routes/player.routes');
 const openingRoutes = require('./routes/opening.routes');
+
 const searchRoutes = require('./routes/search.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const statsRoutes = require('./routes/stats.routes');
@@ -17,6 +18,8 @@ const middlewareRoutes = require('./routes/middleware.routes');
 const protectedRoutes = require('./routes/protected.routes');
 const systemRoutes = require('./routes/system.routes');
 const metaRoutes = require('./routes/meta.routes');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swagger');
 const systemController = require('./controllers/system.controller');
 
 const app = express();
@@ -27,14 +30,18 @@ app.use('/api/v1', metaRoutes);
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(logger);
+
+// Swagger Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
 app.use(rateLimiter);
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/matches', matchRoutes);
-app.use('/api/v1/matches/filter', filterRoutes);
 app.use('/api/v1/filters', filterRoutes);
 app.use('/api/v1/players', playerRoutes);
 app.use('/api/v1/openings', openingRoutes);

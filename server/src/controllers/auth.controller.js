@@ -39,6 +39,23 @@ const authController = {
     });
   }),
 
+  // @desc    Login user with Google
+  // @route   POST /api/v1/auth/google
+  googleLogin: asyncHandler(async (req, res) => {
+    const { credential } = req.body;
+    const { user, accessToken, refreshToken } = await authService.googleLogin(credential);
+    return apiResponse.success(res, 'Google login successful', {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      },
+      accessToken,
+      refreshToken
+    });
+  }),
+
   // @desc    Logout user
   // @route   POST /api/v1/auth/logout
   logout: asyncHandler(async (req, res) => {
