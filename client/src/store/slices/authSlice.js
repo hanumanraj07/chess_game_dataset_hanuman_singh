@@ -11,6 +11,15 @@ export const loginUser = createAsyncThunk('auth/login', async (credentials, { re
   }
 });
 
+export const googleLoginUser = createAsyncThunk('auth/googleLogin', async (credential, { rejectWithValue }) => {
+  try {
+    const res = await authService.googleLogin(credential);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Google login failed');
+  }
+});
+
 export const registerUser = createAsyncThunk('auth/register', async (data, { rejectWithValue }) => {
   try {
     const res = await authService.register(data);
@@ -82,6 +91,9 @@ const authSlice = createSlice({
       .addCase(loginUser.pending, handlePending)
       .addCase(loginUser.fulfilled, handleSuccess)
       .addCase(loginUser.rejected, handleReject)
+      .addCase(googleLoginUser.pending, handlePending)
+      .addCase(googleLoginUser.fulfilled, handleSuccess)
+      .addCase(googleLoginUser.rejected, handleReject)
       .addCase(registerUser.pending, handlePending)
       .addCase(registerUser.fulfilled, handleSuccess)
       .addCase(registerUser.rejected, handleReject);
