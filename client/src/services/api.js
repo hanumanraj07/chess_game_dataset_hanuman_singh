@@ -33,5 +33,48 @@ api.interceptors.response.use(
   }
 );
 
+// Global GET Request Cache
+const requestCache = new Map();
+
+const originalGet = api.get;
+api.get = async (url, config) => {
+  const key = url + JSON.stringify(config?.params || {});
+  
+  if (requestCache.has(key)) {
+    return Promise.resolve(requestCache.get(key));
+  }
+  
+  const response = await originalGet.call(api, url, config);
+  requestCache.set(key, response);
+  return response;
+};
+
+// Clear cache on mutations to avoid stale data
+const clearCache = () => requestCache.clear();
+
+const originalPost = api.post;
+api.post = async (...args) => {
+  clearCache();
+  return originalPost.apply(api, args);
+};
+
+const originalPut = api.put;
+api.put = async (...args) => {
+  clearCache();
+  return originalPut.apply(api, args);
+};
+
+const originalPatch = api.patch;
+api.patch = async (...args) => {
+  clearCache();
+  return originalPatch.apply(api, args);
+};
+
+const originalDelete = api.delete;
+api.delete = async (...args) => {
+  clearCache();
+  return originalDelete.apply(api, args);
+};
+
 export default api;
 export { BASE_URL };

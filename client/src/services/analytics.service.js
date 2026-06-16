@@ -20,4 +20,6 @@ export const analyticsService = {
   getHourlyActivity: () => api.get('/analytics/hourly-activity'),
   getRatingDistribution: () => api.get('/analytics/rating-distribution'),
   getRatingTrend: () => api.get('/analytics/rating-trend'),
+  getRatingGapUpsets: () => api.get('/analytics/rating-gap-upsets'),
+  getTopGames: () => api.get('/analytics/top-games'),
 };
