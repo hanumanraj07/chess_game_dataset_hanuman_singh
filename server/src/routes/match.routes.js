@@ -1,6 +1,12 @@
 const express = require('express');
+const multer = require('multer');
 const matchController = require('../controllers/match.controller');
 const { protect } = require('../middlewares/auth.middleware');
+
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 const router = express.Router();
 
@@ -19,6 +25,7 @@ router.get('/random', matchController.getRandomMatch);
 /**
  * Bulk Operations (before /:id to avoid param capture)
  */
+router.post('/upload', protect, upload.single('pgn'), matchController.uploadPGN);
 router.post('/bulk-upload', protect, matchController.bulkUpload);
 router.patch('/bulk-update', protect, matchController.bulkUpdate);
 router.post('/bulk-delete', protect, matchController.bulkDelete);

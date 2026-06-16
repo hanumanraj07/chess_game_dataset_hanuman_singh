@@ -74,6 +74,40 @@ const matchSchema = new mongoose.Schema(
       type: String,
     },
 
+    // --- Live Game Extras ---
+    status: {
+      type: String,
+      enum: ['waiting', 'active', 'completed', 'aborted'],
+      default: 'completed'
+    },
+    mode: {
+      type: String,
+      enum: ['bullet', 'blitz', 'rapid', 'classical', 'custom'],
+      default: 'blitz'
+    },
+    pgn: { type: String },
+    fen: { type: String, default: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' },
+    whitePlayerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    blackPlayerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    
+    // --- Post-Game Analysis ---
+    analysis: {
+      accuracyWhite: Number,
+      accuracyBlack: Number,
+      blundersWhite: Number,
+      blundersBlack: Number,
+      mistakesWhite: Number,
+      mistakesBlack: Number,
+      inaccuraciesWhite: Number,
+      inaccuraciesBlack: Number,
+      bestMovesWhite: Number,
+      bestMovesBlack: Number,
+      brilliantMovesWhite: Number,
+      brilliantMovesBlack: Number,
+      aiSummary: String,
+      evalHistory: [Number] // Centipawn evaluation per move
+    },
+
     // --- App-level flags ---
     isArchived: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },

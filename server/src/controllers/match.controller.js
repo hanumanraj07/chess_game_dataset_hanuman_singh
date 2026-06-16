@@ -3,6 +3,7 @@ const apiResponse = require('../utils/apiResponse');
 const asyncHandler = require('../utils/asyncHandler');
 const { paginate, buildSort } = require('../utils/pagination');
 const { stripQueryKeys } = require('../utils/query');
+const { Chess } = require('chess.js');
 
 const listFilters = (query) => stripQueryKeys(query, [
   'page',
@@ -260,6 +261,76 @@ const matchController = {
   bulkUpload: asyncHandler(async (req, res) => {
     const result = await matchService.bulkUpload(req.body.matches);
     return apiResponse.success(res, 'Bulk upload successful', result, {}, 201);
+  }),
+
+  // @desc    Upload PGN file
+  // @route   POST /api/v1/matches/upload
+  uploadPGN: asyncHandler(async (req, res) => {
+    try {
+      if (!req.file) {
+        return apiResponse.error(res, 'No PGN file uploaded', 400);
+      }
+      const pgnText = req.file.buffer.toString('utf8');
+      
+      const normalizedText = pgnText.replace(/\r\n/g, '\n');
+      const games = normalizedText.split(/(?=\[Event )/i).map(g => g.trim()).filter(Boolean);
+      const parsedMatches = [];
+
+      for (const gameText of games) {
+        try {
+          const chess = new Chess();
+          chess.loadPgn(gameText);
+          
+          const header = chess.header();
+          
+          let winner = 'draw';
+          if (header.Result === '1-0') winner = 'white';
+          if (header.Result === '0-1') winner = 'black';
+          
+          let vicStatus = 'draw';
+          const term = (header.Termination || '').toLowerCase();
+          if (term.includes('mate')) vicStatus = 'mate';
+          else if (term.includes('resign')) vicStatus = 'resign';
+          else if (term.includes('time')) vicStatus = 'outoftime';
+          
+          let uniqueId = Date.now().toString(36) + Math.random().toString(36).substring(2);
+          if (header.Site && header.Site.includes('http')) {
+            const parts = header.Site.split('/');
+            if (parts.length > 3) uniqueId = parts.pop();
+          }
+
+          parsedMatches.push({
+            id: uniqueId,
+            rated: (header.Event && header.Event.toLowerCase().includes('rated')) ? 'TRUE' : 'FALSE',
+            created_at: header.Date ? header.Date.replace(/\./g, '-') : new Date().toISOString(),
+            last_move_at: new Date().toISOString(),
+            turns: chess.history().length.toString(),
+            victory_status: vicStatus,
+            winner,
+            increment_code: header.TimeControl || '',
+            white_id: header.White || 'Unknown',
+            white_rating: header.WhiteElo || '',
+            black_id: header.Black || 'Unknown',
+            black_rating: header.BlackElo || '',
+            moves: chess.history().join(' '),
+            opening_eco: header.ECO || '',
+            opening_name: header.Opening || '',
+          });
+        } catch (e) {
+          console.error('Error parsing game from PGN:', e);
+        }
+      }
+
+      if (parsedMatches.length === 0) {
+        return apiResponse.error(res, 'No valid games found in PGN', 400);
+      }
+
+      const result = await matchService.bulkUpload(parsedMatches);
+      return apiResponse.success(res, 'PGN uploaded successfully', { imported: parsedMatches.length, dbResult: result }, {}, 201);
+    } catch (err) {
+      console.error('Upload Error:', err);
+      return apiResponse.error(res, err.message || 'Server error during upload', 500);
+    }
   }),
 
   // @desc    Bulk update matches
