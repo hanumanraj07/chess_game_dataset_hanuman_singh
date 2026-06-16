@@ -1,15 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Search, ArrowUpDown } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Search } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useDispatch, useSelector } from 'react-redux';
 import { openingService } from '../../services/opening.service.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { usePagination } from '../../hooks/usePagination.js';
 import Pagination from '../../components/ui/Pagination.jsx';
 import { EmptyState, ErrorState } from '../../components/ui/EmptyState.jsx';
 import { formatNumber } from '../../utils/formatters.js';
+import { setListCache } from '../../store/slices/listCacheSlice.js';
 
 const OpeningsPage = () => {
+  const dispatch = useDispatch();
   const [openings, setOpenings] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -20,8 +23,22 @@ const OpeningsPage = () => {
 
   const q = useDebounce(searchInput, 300);
   const { currentPage, pageSize, goToPage, reset } = usePagination(15);
+  const cacheKey = useMemo(() => JSON.stringify({
+    page: currentPage,
+    limit: pageSize,
+    q,
+  }), [currentPage, pageSize, q]);
+  const cachedOpenings = useSelector((state) => state.listCache.openings[cacheKey]);
 
   const fetchOpenings = useCallback(async () => {
+    if (cachedOpenings) {
+      setOpenings(cachedOpenings.items);
+      setTotalCount(cachedOpenings.totalCount);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -31,14 +48,22 @@ const OpeningsPage = () => {
       const data = res.data;
       // Server shape: { success, message, data: { openings: [] }, meta: { total, ... } }
       const openingList = data?.data?.openings ?? data?.openings ?? data?.data ?? [];
-      setOpenings(Array.isArray(openingList) ? openingList : []);
-      setTotalCount(data?.meta?.total ?? data?.meta?.totalCount ?? data?.total ?? data?.totalCount ?? 0);
+      const items = Array.isArray(openingList) ? openingList : [];
+      const nextTotalCount = data?.meta?.total ?? data?.meta?.totalCount ?? data?.total ?? data?.totalCount ?? 0;
+      setOpenings(items);
+      setTotalCount(nextTotalCount);
+      dispatch(setListCache({
+        namespace: 'openings',
+        key: cacheKey,
+        items,
+        totalCount: nextTotalCount,
+      }));
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, q]);
+  }, [cacheKey, cachedOpenings, currentPage, dispatch, pageSize, q]);
 
   useEffect(() => { fetchOpenings(); }, [fetchOpenings]);
 
@@ -54,8 +79,8 @@ const OpeningsPage = () => {
     .slice(0, 10)
     .map((o) => ({ name: (o.name || o.opening || '').slice(0, 18), games: o.total || o.totalGames || o.count || 0 }));
 
-  const SortTh = ({ field, label }) => (
-    <th className="sortable-th" onClick={() => handleSort(field)} style={{ cursor: 'pointer', userSelect: 'none' }}>
+  const SortTh = ({ field, label, className }) => (
+    <th className={`sortable-th ${className || ''}`} onClick={() => handleSort(field)} style={{ cursor: 'pointer', userSelect: 'none' }}>
       {label} {sortField === field ? (sortDir === -1 ? '↓' : '↑') : ''}
     </th>
   );
@@ -76,7 +101,6 @@ const OpeningsPage = () => {
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
           <h1>Openings</h1>
-          <span className="page-count">{formatNumber(totalCount)} TOTAL</span>
         </div>
       </div>
 
@@ -122,9 +146,9 @@ const OpeningsPage = () => {
                   <SortTh field="eco" label="ECO" />
                   <SortTh field="name" label="Opening Name" />
                   <SortTh field="total" label="Total Games" />
-                  <SortTh field="whiteWinRate" label="White Win%" />
-                  <SortTh field="blackWinRate" label="Black Win%" />
-                  <SortTh field="drawRate" label="Draw%" />
+                  <SortTh field="whiteWinRate" label="White Win%" className="hide-on-mobile" />
+                  <SortTh field="blackWinRate" label="Black Win%" className="hide-on-mobile" />
+                  <SortTh field="drawRate" label="Draw%" className="hide-on-mobile" />
                 </tr>
               </thead>
               <tbody>
@@ -141,17 +165,17 @@ const OpeningsPage = () => {
                       <td style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--color-green)' }}>{o.eco || o.ECO || '—'}</td>
                       <td>{o.name || o.opening || '—'}</td>
                       <td style={{ fontWeight: 600 }}>{formatNumber(o.total || o.totalGames || o.count || 0)}</td>
-                      <td>{
+                      <td className="hide-on-mobile">{
                         (o.total || o.totalGames || o.count) > 0 && o.whiteWins != null
                           ? `${((o.whiteWins / (o.total || o.totalGames || o.count)) * 100).toFixed(1)}%`
                           : (o.winRate?.white != null ? `${o.winRate.white.toFixed(1)}%` : '—')
                       }</td>
-                      <td>{
+                      <td className="hide-on-mobile">{
                         (o.total || o.totalGames || o.count) > 0 && o.blackWins != null
                           ? `${((o.blackWins / (o.total || o.totalGames || o.count)) * 100).toFixed(1)}%`
                           : (o.winRate?.black != null ? `${o.winRate.black.toFixed(1)}%` : '—')
                       }</td>
-                      <td>{
+                      <td className="hide-on-mobile">{
                         (o.total || o.totalGames || o.count) > 0 && o.draws != null
                           ? `${((o.draws / (o.total || o.totalGames || o.count)) * 100).toFixed(1)}%`
                           : (o.winRate?.draw != null ? `${o.winRate.draw.toFixed(1)}%` : '—')

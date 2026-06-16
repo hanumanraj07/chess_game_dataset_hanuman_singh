@@ -58,8 +58,24 @@ const PlayerDetail = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
           <Link to="/players" className="btn btn-ghost btn-sm"><ArrowLeft size={14} /> BACK</Link>
           <h1>{player.username || player.name || player._id}</h1>
+          {player.giantSlayer && (
+            <div style={{ background: 'var(--color-yellow)', color: 'var(--color-black)', padding: 'var(--space-1) var(--space-3)', border: '2px solid var(--color-black)', fontFamily: 'var(--font-display)', fontWeight: 'bold', fontSize: 'var(--font-size-sm)', boxShadow: '2px 2px 0 var(--color-black)', marginLeft: 'auto' }}>
+              🏆 GIANT SLAYER (+{player.maxUpsetDiff})
+            </div>
+          )}
         </div>
       </div>
+
+      {player.giantSlayer && (
+        <div style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-3)', border: '2px solid var(--color-black)', background: 'var(--color-bg)', boxShadow: '4px 4px 0 var(--color-black)' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 'bold', marginBottom: 'var(--space-2)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <span style={{ fontSize: '1.2rem' }}>⚔️ BIGGEST UPSET</span>
+          </div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-sm)' }}>
+            Defeated <strong>{player.giantSlayer.white_id === player.username ? player.giantSlayer.black_id : player.giantSlayer.white_id}</strong> (Rating: {player.giantSlayer.white_id === player.username ? player.giantSlayer.black_rating : player.giantSlayer.white_rating}) as a {player.giantSlayer.white_id === player.username ? player.giantSlayer.white_rating : player.giantSlayer.black_rating} rated player.
+          </div>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="stats-grid" style={{ marginBottom: 'var(--space-5)' }}>
@@ -110,6 +126,39 @@ const PlayerDetail = () => {
             </div>
           )}
         </div>
+        
+        {/* Victory Status Breakdown */}
+        {player.victoryStatus && (
+          <div className="chart-container" style={{ gridColumn: '1 / -1' }}>
+            <div className="chart-title">Win Conditions Breakdown</div>
+            <div style={{ display: 'flex', height: 32, width: '100%', background: 'var(--color-bg-dark)', border: '2px solid var(--color-black)' }}>
+              {[
+                { label: 'Mate', value: player.victoryStatus.mate || 0, color: '#1A6B3A' },
+                { label: 'Resign', value: player.victoryStatus.resign || 0, color: '#D4A017' },
+                { label: 'Time Out', value: player.victoryStatus.outoftime || 0, color: '#C0392B' },
+              ].filter(d => d.value > 0).map((d, i, arr) => {
+                const totalWins = arr.reduce((acc, curr) => acc + curr.value, 0);
+                return (
+                  <div key={i} style={{ width: `${(d.value / totalWins) * 100}%`, background: d.color, borderRight: i < arr.length - 1 ? '2px solid var(--color-black)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: 'var(--font-display)', fontSize: 10, fontWeight: 'bold', overflow: 'hidden', whiteSpace: 'nowrap' }} title={`${d.label}: ${d.value}`}>
+                    {(d.value / totalWins * 100).toFixed(0)}%
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-3)', fontFamily: 'var(--font-display)', fontSize: 'var(--font-size-xs)', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Mate', value: player.victoryStatus.mate || 0, color: '#1A6B3A' },
+                { label: 'Resign', value: player.victoryStatus.resign || 0, color: '#D4A017' },
+                { label: 'Time Out', value: player.victoryStatus.outoftime || 0, color: '#C0392B' },
+              ].filter(d => d.value > 0).map((d, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                  <div style={{ width: 14, height: 14, background: d.color, border: '2px solid var(--color-black)' }} />
+                  {d.label} ({d.value})
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Match history */}

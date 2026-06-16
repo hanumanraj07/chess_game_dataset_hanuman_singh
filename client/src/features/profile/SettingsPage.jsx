@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import Modal from '../../components/ui/Modal.jsx';
 import { Helmet } from 'react-helmet-async';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleTheme } from '../../store/slices/uiSlice.js';
@@ -18,7 +19,10 @@ const SettingsPage = () => {
   const { user, logout } = useAuth();
   const [pageSize, setPageSize] = React.useState(() => parseInt(localStorage.getItem(PREF_KEY) || '10'));
 
-  const handleLogout = () => {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
     logout();
     toast.success('LOGGED OUT SUCCESSFULLY');
     navigate('/login');
@@ -134,11 +138,31 @@ const SettingsPage = () => {
               </div>
             ))}
           </div>
-          <Button variant="danger" onClick={handleLogout} id="settings-logout-btn">
+          <Button variant="danger" onClick={() => setShowLogoutModal(true)} id="settings-logout-btn">
             <LogOut size={14} /> LOGOUT
           </Button>
         </Section>
       </div>
+
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title="CONFIRM LOGOUT"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowLogoutModal(false)} id="settings-cancel-logout-btn">
+              CANCEL
+            </Button>
+            <Button variant="danger" onClick={confirmLogout} id="settings-confirm-logout-btn">
+              LOGOUT
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontFamily: 'var(--font-ui)', fontSize: 'var(--font-size-sm)', color: 'var(--color-muted)' }}>
+          Are you sure you want to log out of your account?
+        </p>
+      </Modal>
     </>
   );
 };

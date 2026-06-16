@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { Search, LayoutGrid, List } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
 import { playerService } from '../../services/player.service.js';
 import { useDebounce } from '../../hooks/useDebounce.js';
 import { usePagination } from '../../hooks/usePagination.js';
@@ -9,8 +10,10 @@ import Pagination from '../../components/ui/Pagination.jsx';
 import { EmptyState, ErrorState } from '../../components/ui/EmptyState.jsx';
 import { SkeletonCard } from '../../components/ui/Skeleton.jsx';
 import { formatNumber } from '../../utils/formatters.js';
+import { setListCache } from '../../store/slices/listCacheSlice.js';
 
 const PlayersPage = () => {
+  const dispatch = useDispatch();
   const [players, setPlayers] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -20,8 +23,22 @@ const PlayersPage = () => {
 
   const q = useDebounce(searchInput, 300);
   const { currentPage, pageSize, goToPage, reset } = usePagination(12);
+  const cacheKey = useMemo(() => JSON.stringify({
+    page: currentPage,
+    limit: pageSize,
+    q,
+  }), [currentPage, pageSize, q]);
+  const cachedPlayers = useSelector((state) => state.listCache.players[cacheKey]);
 
   const fetchPlayers = useCallback(async () => {
+    if (cachedPlayers) {
+      setPlayers(cachedPlayers.items);
+      setTotalCount(cachedPlayers.totalCount);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -29,16 +46,23 @@ const PlayersPage = () => {
       if (q) params.q = q;
       const res = await playerService.getAll(params);
       const data = res.data;
-      // Server shape: { success, message, data: { players: [] }, meta: { total, ... } }
       const playerList = data?.data?.players ?? data?.players ?? data?.data ?? [];
-      setPlayers(Array.isArray(playerList) ? playerList : []);
-      setTotalCount(data?.meta?.total ?? data?.meta?.totalCount ?? data?.total ?? data?.totalCount ?? 0);
+      const items = Array.isArray(playerList) ? playerList : [];
+      const nextTotalCount = data?.meta?.total ?? data?.meta?.totalCount ?? data?.total ?? data?.totalCount ?? 0;
+      setPlayers(items);
+      setTotalCount(nextTotalCount);
+      dispatch(setListCache({
+        namespace: 'players',
+        key: cacheKey,
+        items,
+        totalCount: nextTotalCount,
+      }));
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, q]);
+  }, [cacheKey, cachedPlayers, currentPage, dispatch, pageSize, q]);
 
   useEffect(() => { fetchPlayers(); }, [fetchPlayers]);
 
@@ -112,7 +136,6 @@ const PlayersPage = () => {
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
           <h1>Players</h1>
-          <span className="page-count">{formatNumber(totalCount)} TOTAL</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button

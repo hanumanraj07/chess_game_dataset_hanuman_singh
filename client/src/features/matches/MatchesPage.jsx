@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
-import { Plus, Eye, Pencil, Trash2, Search } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, Search, Upload } from 'lucide-react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
 import { matchService } from '../../services/match.service.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { usePagination } from '../../hooks/usePagination.js';
@@ -15,6 +16,7 @@ import Button from '../../components/ui/Button.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import { EmptyState, ErrorState } from '../../components/ui/EmptyState.jsx';
 import { formatDate, getResultBadgeClass, formatNumber } from '../../utils/formatters.js';
+import { clearListCache, setListCache } from '../../store/slices/listCacheSlice.js';
 
 const matchSchema = Yup.object({
   white_id: Yup.string().required('White player required'),
@@ -25,6 +27,7 @@ const matchSchema = Yup.object({
 
 const MatchesPage = () => {
   const { isAdmin } = useAuth();
+  const dispatch = useDispatch();
   const [matches, setMatches] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -36,11 +39,32 @@ const MatchesPage = () => {
   const [editMatch, setEditMatch] = useState(null);
   const [deleteMatch, setDeleteMatch] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  
+  const fileInputRef = useRef(null);
 
   const q = useDebounce(searchInput, 300);
   const { currentPage, pageSize, goToPage, reset } = usePagination(10);
+  const cacheKey = useMemo(() => JSON.stringify({
+    page: currentPage,
+    limit: pageSize,
+    sort: sortBy,
+    q,
+    rated: filters.rated,
+    type: filters.type,
+    winner: filters.winner,
+  }), [currentPage, pageSize, sortBy, q, filters]);
+  const cachedMatches = useSelector((state) => state.listCache.matches[cacheKey]);
 
-  const fetchMatches = useCallback(async () => {
+  const fetchMatches = useCallback(async ({ force = false } = {}) => {
+    if (!force && cachedMatches) {
+      setMatches(cachedMatches.items);
+      setTotalCount(cachedMatches.totalCount);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -54,14 +78,22 @@ const MatchesPage = () => {
       const data = res.data;
       // Server response shape: { success, message, data: { matches: [] }, meta: { total, ... } }
       const matchList = data?.data?.matches ?? data?.matches ?? data?.data ?? [];
-      setMatches(Array.isArray(matchList) ? matchList : []);
-      setTotalCount(data?.meta?.total ?? data?.meta?.totalCount ?? data?.total ?? data?.totalCount ?? data?.count ?? 0);
+      const items = Array.isArray(matchList) ? matchList : [];
+      const nextTotalCount = data?.meta?.total ?? data?.meta?.totalCount ?? data?.total ?? data?.totalCount ?? data?.count ?? 0;
+      setMatches(items);
+      setTotalCount(nextTotalCount);
+      dispatch(setListCache({
+        namespace: 'matches',
+        key: cacheKey,
+        items,
+        totalCount: nextTotalCount,
+      }));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load matches');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, pageSize, sortBy, q, filters]);
+  }, [cacheKey, cachedMatches, currentPage, dispatch, filters, pageSize, q, sortBy]);
 
   useEffect(() => { fetchMatches(); }, [fetchMatches]);
 
@@ -78,9 +110,31 @@ const MatchesPage = () => {
       await matchService.remove(deleteMatch._id);
       toast.success('MATCH DELETED SUCCESSFULLY');
       setDeleteMatch(null);
-      fetchMatches();
-    } catch (err) {
+      dispatch(clearListCache('matches'));
+      fetchMatches({ force: true });
+    } catch {
       toast.error('FAILED TO DELETE MATCH');
+    }
+  };
+
+  const handlePgnUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('pgn', file);
+      
+      const res = await matchService.uploadPGN(formData);
+      toast.success(`UPLOADED ${res.data.data.imported || 'GAMES'} SUCCESSFULLY`);
+      dispatch(clearListCache('matches'));
+      fetchMatches({ force: true });
+    } catch (err) {
+      toast.error(err.response?.data?.message?.toUpperCase() || 'PGN UPLOAD FAILED');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -108,7 +162,8 @@ const MatchesPage = () => {
           toast.success('MATCH CREATED SUCCESSFULLY');
           setShowCreateModal(false);
         }
-        fetchMatches();
+        dispatch(clearListCache('matches'));
+        fetchMatches({ force: true });
       } catch (err) {
         toast.error(err.response?.data?.message?.toUpperCase() || 'OPERATION FAILED');
       } finally {
@@ -168,13 +223,22 @@ const MatchesPage = () => {
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
           <h1>Match Records</h1>
-          <span className="page-count">{formatNumber(totalCount)} TOTAL</span>
         </div>
-        {isAdmin && (
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <input 
+            type="file" 
+            accept=".pgn" 
+            ref={fileInputRef} 
+            style={{ display: 'none' }} 
+            onChange={handlePgnUpload} 
+          />
+          <Button id="upload-pgn-btn" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+            <Upload size={14} /> {uploading ? 'UPLOADING...' : 'UPLOAD PGN'}
+          </Button>
           <Button id="add-match-btn" onClick={() => { setEditMatch(null); formik.resetForm(); setShowCreateModal(true); }}>
             <Plus size={14} /> ADD MATCH
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -227,15 +291,14 @@ const MatchesPage = () => {
                 <tr>
                   <th>#</th>
                   <th>White Player</th>
-                  <th>White Rating</th>
+                  <th className="hide-on-mobile">White Rating</th>
                   <th>Black Player</th>
-                  <th>Black Rating</th>
+                  <th className="hide-on-mobile">Black Rating</th>
                   <th>Winner</th>
-                  <th>Turns</th>
-                  <th>Opening</th>
-                  <th>Type</th>
-                  <th>Rated</th>
-                  <th>Date</th>
+                  <th className="hide-on-mobile">Turns</th>
+                  <th className="hide-on-mobile">Type</th>
+                  <th className="hide-on-mobile">Rated</th>
+                  <th className="hide-on-mobile">Date</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -243,14 +306,14 @@ const MatchesPage = () => {
                 {loading ? (
                   Array(10).fill(0).map((_, i) => (
                     <tr key={i}>
-                      {Array(12).fill(0).map((__, j) => (
+                      {Array(11).fill(0).map((__, j) => (
                         <td key={j}><div className="skeleton" style={{ height: 14 }} /></td>
                       ))}
                     </tr>
                   ))
                 ) : matches.length === 0 ? (
                   <tr>
-                    <td colSpan={12}>
+                    <td colSpan={11}>
                       <EmptyState title="NO MATCHES FOUND" message={q ? `No results for "${q}"` : 'No matches in database'} />
                     </td>
                   </tr>
@@ -261,27 +324,24 @@ const MatchesPage = () => {
                         {(currentPage - 1) * pageSize + idx + 1}
                       </td>
                       <td>{m.white_id || '—'}</td>
-                      <td>{m.white_rating || '—'}</td>
+                      <td className="hide-on-mobile">{m.white_rating || '—'}</td>
                       <td>{m.black_id || '—'}</td>
-                      <td>{m.black_rating || '—'}</td>
+                      <td className="hide-on-mobile">{m.black_rating || '—'}</td>
                       <td>
                         <Badge variant={getResultBadgeClass(m.winner).replace('badge-', '')}>
                           {m.winner?.toUpperCase() || '—'}
                         </Badge>
                       </td>
-                      <td>{m.turns || '—'}</td>
-                      <td style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {m.opening_eco ? `[${m.opening_eco}] ` : ''}{m.opening_name || m.opening || '—'}
-                      </td>
-                      <td>
+                      <td className="hide-on-mobile">{m.turns || '—'}</td>
+                      <td className="hide-on-mobile">
                         <Badge variant="outline">{(m.increment_code || m.time_increment || m.type || '—').toUpperCase()}</Badge>
                       </td>
-                      <td>
+                      <td className="hide-on-mobile">
                         <Badge variant={m.rated === 'TRUE' || m.rated === true ? 'green' : 'outline'}>
                           {m.rated === 'TRUE' || m.rated === true ? 'YES' : 'NO'}
                         </Badge>
                       </td>
-                      <td style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-muted)' }}>
+                      <td className="hide-on-mobile" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-muted)' }}>
                         {formatDate(m.created_at || m.createdAt)}
                       </td>
                       <td>
