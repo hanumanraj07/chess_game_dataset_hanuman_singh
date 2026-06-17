@@ -1,0 +1,50 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: 'server/package-lock.json'
+
+    # Backend Setup
+    - name: Install Backend Dependencies
+      run: npm ci
+      working-directory: ./server
+
+    # Frontend Setup
+    - name: Install Frontend Dependencies
+      run: npm ci
+      working-directory: ./client
+      
+    - name: Build Frontend
+      run: npm run build
+      working-directory: ./client
+
+  docker-build:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build docker-compose stack
+      run: docker-compose build

@@ -28,12 +28,48 @@ const playerService = {
     if (!player) throw new Error('Player not found');
     
     // Fetch recent match history to attach for the frontend PlayerDetail view
-    const matchHistory = await Match.find({ 
+    const allMatches = await Match.find({ 
       isDeleted: false, 
       $or: [{ white_id: player.username }, { black_id: player.username }] 
-    }).sort({ created_at: -1 }).limit(20);
+    }).sort({ created_at: -1 });
+
+    let giantSlayer = null;
+    let maxUpsetDiff = 0;
+    const victoryStatus = { mate: 0, resign: 0, outoftime: 0, draw: 0 };
+
+    allMatches.forEach(m => {
+      const isWhite = m.white_id === player.username;
+      const playerRating = isWhite ? (m.white_rating || 0) : (m.black_rating || 0);
+      const opponentRating = isWhite ? (m.black_rating || 0) : (m.white_rating || 0);
+      
+      let playerWon = false;
+      if (m.winner !== 'draw') {
+        playerWon = (isWhite && m.winner === 'white') || (!isWhite && m.winner === 'black');
+      }
+
+      if (playerWon) {
+        const diff = opponentRating - playerRating;
+        if (diff > maxUpsetDiff) {
+          maxUpsetDiff = diff;
+          giantSlayer = m;
+        }
+        if (m.victory_status && victoryStatus[m.victory_status] !== undefined) {
+          victoryStatus[m.victory_status]++;
+        }
+      } else if (m.winner === 'draw') {
+        victoryStatus.draw++;
+      }
+    });
+
+    const matchHistory = allMatches.slice(0, 20);
     
-    return { ...player.toObject(), matchHistory };
+    return { 
+      ...player.toObject(), 
+      matchHistory, 
+      giantSlayer, 
+      maxUpsetDiff, 
+      victoryStatus 
+    };
   },
 
   getPlayerHistory: async (username, filters = {}, skip = 0, limit = 20) => {

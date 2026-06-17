@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chess-analytics.example.com/sitemap.xml

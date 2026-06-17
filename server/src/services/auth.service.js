@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const env = require('../config/env');
 const User = require('../models/User');
+
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 /**
  * Generate Access Token
@@ -21,20 +24,23 @@ const generateRefreshToken = (userId) => {
   });
 };
 
+const issueAuthTokens = async (user) => {
+  const accessToken = generateToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  return { user, accessToken, refreshToken };
+};
+
 /**
  * Auth Service Logic
  */
 const authService = {
   register: async (userData) => {
     const user = await User.create(userData);
-    const accessToken = generateToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
-
-    // Save refresh token to DB
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    return { user, accessToken, refreshToken };
+    return issueAuthTokens(user);
   },
 
   login: async (email, password) => {
@@ -47,14 +53,58 @@ const authService = {
       throw new Error('Your account has been banned');
     }
 
-    const accessToken = generateToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
+    return issueAuthTokens(user);
+  },
 
-    // Update refresh token in DB
-    user.refreshToken = refreshToken;
-    await user.save();
+  googleLogin: async (credential) => {
+    if (!env.GOOGLE_CLIENT_ID) {
+      throw new Error('Google login is not configured');
+    }
 
-    return { user, accessToken, refreshToken };
+    if (!credential) {
+      throw new Error('Google credential is required');
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload?.email || !payload?.sub) {
+      throw new Error('Invalid Google account response');
+    }
+
+    if (!payload.email_verified) {
+      throw new Error('Google account email is not verified');
+    }
+
+    let user = await User.findOne({ email: payload.email.toLowerCase() });
+
+    if (user?.isBanned) {
+      throw new Error('Your account has been banned');
+    }
+
+    if (user?.googleId && user.googleId !== payload.sub) {
+      throw new Error('This email is linked to a different Google account');
+    }
+
+    if (!user) {
+      user = await User.create({
+        name: payload.name || payload.email.split('@')[0],
+        email: payload.email,
+        authProvider: 'google',
+        googleId: payload.sub,
+        emailVerified: true,
+      });
+    } else {
+      user.googleId = user.googleId || payload.sub;
+      user.emailVerified = true;
+      if (!user.name && payload.name) user.name = payload.name;
+      await user.save();
+    }
+
+    return issueAuthTokens(user);
   },
 
   logout: async (userId) => {

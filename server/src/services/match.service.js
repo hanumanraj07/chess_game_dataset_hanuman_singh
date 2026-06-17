@@ -14,7 +14,7 @@ const matchService = {
    * Get all matches (non-deleted) with sort & pagination
    */
   getAllMatches: async (filters = {}, sort = { created_at: -1 }, skip = 0, limit = 10) => {
-    const { page, q, rated, type, ...dbFilters } = filters;
+    const { page, q, rated, type, minRating, maxRating, winner, eco, ...dbFilters } = filters;
     const query = { ...dbFilters, isDeleted: false };
     
     if (q) {
@@ -25,15 +25,28 @@ const matchService = {
       ];
     }
     
-    if (rated) {
-      query.rated = rated.toUpperCase();
+    if (rated) query.rated = rated.toUpperCase();
+    if (winner) query.winner = winner.toLowerCase();
+    if (eco) query.opening_eco = { $regex: `^${eco}`, $options: 'i' };
+
+    // Numerical Rating Filters (handled gracefully even though stored as strings)
+    if (minRating || maxRating) {
+      const min = parseInt(minRating) || 0;
+      const max = parseInt(maxRating) || 9999;
+      // using $expr to cast string ratings to int
+      query.$expr = {
+        $or: [
+          { $and: [{ $gte: [{ $toInt: '$white_rating' }, min] }, { $lte: [{ $toInt: '$white_rating' }, max] }] },
+          { $and: [{ $gte: [{ $toInt: '$black_rating' }, min] }, { $lte: [{ $toInt: '$black_rating' }, max] }] }
+        ]
+      };
     }
     
     return await Match.find(query).sort(sort).skip(skip).limit(limit);
   },
 
   countMatches: async (filters = {}) => {
-    const { page, q, rated, type, ...dbFilters } = filters;
+    const { page, q, rated, type, minRating, maxRating, winner, eco, ...dbFilters } = filters;
     const query = { ...dbFilters, isDeleted: false };
     
     if (q) {
@@ -44,8 +57,19 @@ const matchService = {
       ];
     }
     
-    if (rated) {
-      query.rated = rated.toUpperCase();
+    if (rated) query.rated = rated.toUpperCase();
+    if (winner) query.winner = winner.toLowerCase();
+    if (eco) query.opening_eco = { $regex: `^${eco}`, $options: 'i' };
+
+    if (minRating || maxRating) {
+      const min = parseInt(minRating) || 0;
+      const max = parseInt(maxRating) || 9999;
+      query.$expr = {
+        $or: [
+          { $and: [{ $gte: [{ $toInt: '$white_rating' }, min] }, { $lte: [{ $toInt: '$white_rating' }, max] }] },
+          { $and: [{ $gte: [{ $toInt: '$black_rating' }, min] }, { $lte: [{ $toInt: '$black_rating' }, max] }] }
+        ]
+      };
     }
     
     return await Match.countDocuments(query);
@@ -197,24 +221,20 @@ const matchService = {
     return match;
   },
 
-  /**
-   * Bulk upload matches
-   */
   bulkUpload: async (matchesData = []) => {
     if (!matchesData.length) throw new Error('No matches provided');
 
-    let createdCount = 0;
-    const created = [];
-
-    for (const data of matchesData) {
-      const existing = await Match.findOne({ id: data.id });
-      if (existing) continue;
-      const match = await Match.create(data);
-      created.push(match);
-      createdCount++;
+    try {
+      // Use ordered: false so duplicate IDs don't stop the whole batch
+      const result = await Match.insertMany(matchesData, { ordered: false });
+      return { createdCount: result.length };
+    } catch (err) {
+      // If it throws an error due to duplicates but some succeeded, err.insertedDocs has the successes
+      if (err.code === 11000 && err.insertedDocs) {
+        return { createdCount: err.insertedDocs.length };
+      }
+      throw err;
     }
-
-    return { createdCount, matches: created };
   },
 
   /**

@@ -1,0 +1,17 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies and build outputs
+node_modules
+dist
+dist-ssr
+coverage
+*.log
+
+# OS and editor cruft
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
